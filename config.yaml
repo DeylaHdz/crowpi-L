@@ -1,0 +1,103 @@
+# Configuración del demo "CrowPi L AI Starter Kit"
+# Las rutas relativas son relativas a la carpeta del repo.
+# Tras editar: reinicia con  scripts/crowpi reiniciar  (o vuelve a lanzar la app).
+
+camara:
+  fuente: csi            # csi (IMX219 del kit) | usb (webcam para pruebas)
+  sensor_id: 0           # 0 en el kit; si no abre, prueba 1
+  usb_dispositivo: 0     # solo con fuente: usb
+  captura_ancho: 1280
+  captura_alto: 720
+  fps: 60
+  salida_ancho: 960      # tamaño con el que trabajan tracker y pantalla
+  salida_alto: 540
+  flip: 0                # 0 normal, 2 = girar 180° (si la imagen sale de cabeza)
+  reconectar_tras_s: 3   # sin frames este tiempo -> reabrir la cámara
+
+rostros:
+  prototxt: models/face/deploy.prototxt
+  pesos: models/face/res10_300x300_ssd_iter_140000_fp16.caffemodel
+  confianza_min: 0.55
+  entrada: [640, 360]    # tamaño de entrada al detector (16:9). [534, 300] = más rápido, ve rostros menos lejanos
+  usar_gpu: true         # si falla, cae solo a CPU
+
+gimbal:
+  habilitado: true
+  i2c_bus: 7
+  direccion: 0x66        # RP2040 de la placa del kit
+  canal_pan: 2           # horizontal
+  canal_tilt: 1          # vertical
+  pulso_min_us: 550
+  pulso_max_us: 2600
+  centro_pan: 80
+  centro_tilt: 65
+  limite_pan: [20, 160]  # ajusta con scripts/prueba_servos.py --interactivo
+  limite_tilt: [35, 120]
+  sentido_pan: -1        # si el gimbal se aleja del rostro en vez de seguirlo, cambia el signo
+  sentido_tilt: 1
+  # Control PI(D): salida en grados/segundo por unidad de error (error -1..1 = borde a borde)
+  kp: 60.0
+  ki: 6.0
+  kd: 0.0
+  zona_muerta: 0.06      # fracción de media pantalla donde no se corrige
+  vel_max: 80.0          # grados/segundo, límite de velocidad
+  envios_por_s: 50       # máximo de comandos I2C a los servos
+  sin_rostro:
+    espera_s: 2.0        # tiempo sin rostro antes de moverse
+    modo: barrido        # centro | barrido
+    vel_regreso: 25.0    # °/s al regresar al centro
+    barrido_tras_s: 8.0  # en modo barrido: centra y luego barre tras este tiempo
+    vel_barrido: 10.0    # °/s
+    barrido_amplitud: 45 # ° a cada lado del centro
+
+vlm:
+  url: http://127.0.0.1:8080
+  intervalo_auto_s: 0    # 0 = solo cuando alguien presiona Enter / pregunta; p.ej. 30 = describir cada 30 s
+  hablar_auto: false     # decir en voz alta también las descripciones automáticas
+  timeout_s: 60
+  max_tokens: 90
+  temperatura: 0.2
+  ancho_imagen: 640      # se reduce el frame antes de enviarlo (menos tokens, más rápido)
+  arranque_max_s: 300    # si el modelo no carga en este tiempo -> modo respaldo (solo seguimiento)
+  prompt_sistema: >-
+    Eres la cámara inteligente del CrowPi L AI Starter Kit, en una feria de tecnología.
+    Respondes SIEMPRE en español de México, con un tono amable y claro.
+    Responde en máximo dos frases cortas. No uses listas, ni markdown, ni emojis.
+    Si no estás seguro de algo, dilo con naturalidad. Nunca inventes nombres de personas.
+  prompt_describir: "¿Qué ves en esta imagen? Descríbelo en español en máximo dos frases cortas."
+
+voz:
+  tts: auto              # auto | no
+  piper_bin: third_party/piper/piper
+  piper_voz: models/voz/es_MX-claude-high.onnx
+  salida_audio: ""       # dispositivo para aplay (-D). Vacío = predeterminado del sistema
+  stt: auto              # auto | no   (si no hay micrófono o whisper, se desactiva solo)
+  whisper_bin: third_party/whisper.cpp/build/bin/whisper-cli
+  whisper_modelo: models/voz/ggml-base.bin
+  microfono: auto        # auto | nombre de dispositivo ALSA, p.ej. plughw:2,0
+  grabar_max_s: 7
+  silencio_fin_s: 1.0
+  umbral_voz: 0.015      # volumen RMS (0-1) a partir del cual se considera voz
+
+controles:
+  sensor_tactil_bcm: 17  # tocar = preguntar por voz (o describir si no hay micrófono). null = desactivado
+  botones_stc8: true     # botones del kit: 1 describir, 2 preguntar por voz, 3 centrar gimbal, 4 silenciar voz
+  permitir_salir: true   # Esc / q cierran la app (pon false en la feria)
+
+rgb:
+  habilitado: true       # matriz 8x8 como indicador de estado
+  brillo: 20
+
+ui:
+  pantalla_completa: true
+  ancho: 1366
+  alto: 768
+  titulo: "CrowPi L AI Starter Kit"
+  lema: "IA que corre dentro del maletín, sin nube"
+  fuente: /usr/share/fonts/truetype/dejavu/DejaVuSans.ttf
+  fuente_negrita: /usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf
+  mostrar_fps: true
+
+sistema:
+  metricas_cada_s: 60        # línea METRICAS en el log (FPS, latencia VLM, RAM, swap, temperatura)
+  alerta_swap_paginas_s: 256 # swap-in+out sostenido por encima de esto 60 s = ALERTA_SWAP en el log

@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Control del demo instalado como servicio.
+# Uso: scripts/crowpi iniciar|detener|reiniciar|estado|logs|metricas
+set -u
+UNIDADES_SIS="crowpi-llm.service"
+modo_kiosco() { systemctl list-unit-files crowpi-kiosco.service >/dev/null 2>&1 && systemctl is-enabled -q crowpi-kiosco.service 2>/dev/null; }
+demo() {  # ejecuta la acción sobre la unidad del demo (kiosco = sistema, escritorio = usuario)
+  if modo_kiosco; then sudo systemctl "$1" crowpi-kiosco.service
+  else systemctl --user "$1" crowpi-demo.service; fi
+}
+case "${1:-estado}" in
+  iniciar)   sudo systemctl start $UNIDADES_SIS; demo start ;;
+  detener)   demo stop; sudo systemctl stop $UNIDADES_SIS ;;
+  reiniciar) sudo systemctl restart $UNIDADES_SIS; demo restart ;;
+  estado)    systemctl status --no-pager -n 5 $UNIDADES_SIS
+             if modo_kiosco; then systemctl status --no-pager -n 5 crowpi-kiosco.service
+             else systemctl --user status --no-pager -n 5 crowpi-demo.service; fi ;;
+  logs)      if modo_kiosco; then journalctl -f -u crowpi-llm -u crowpi-kiosco
+             else journalctl -f -u crowpi-llm --user-unit crowpi-demo; fi ;;
+  metricas)  sudo journalctl --no-pager -o cat --since "-30min" | grep -E "METRICAS|ALERTA_SWAP" | tail -40 ;;
+  *) echo "Uso: $0 iniciar|detener|reiniciar|estado|logs|metricas"; exit 1 ;;
+esac

@@ -1,0 +1,9 @@
+# Pesos y binarios se descargan/compilan con los scripts de instalación (no van al repo)
+models/vlm/
+models/voz/
+models/face/*.caffemodel
+third_party/
+__pycache__/
+*.pyc
+*.part
+fase0_reporte.txt
